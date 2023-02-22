@@ -1,47 +1,35 @@
-const http = require("http");
-const getUsers = require("./modules/users");
-const { URLSearchParams } = require("url");
+import express from 'express';
+import { json } from 'body-parser';
+import { connect } from 'mongoose';
+import cors from './middlewares/cors';
+import logger from './middlewares/logger';
+import usersRouter from './routes/users';
+import booksRouter from './routes/books';
 
-const server = http.createServer((request, response) => {
-  const url = new URL(request.url, "http://127.0.0.1");
-  const params = new URLSearchParams(url.searchParams);
-  const name = params.get("hello");
-  const users = params.get("users");
+require('dotenv').config();
 
-  if (name === "<name>") {
-    response.status = 200;
-    response.statusMessage = "  OK";
-    response.header = "Content-type: text/plain";
-    response.write("Hello, .");
-    response.end();
-  } else if (name === "") {
-    response.statusCode = 400;
-    response.statusMessage = "Bad request";
-    response.header = "Content-type: text/plain";
-    response.write("Enter a name");
-    response.end();
-    return;
-  } else if (users === "") {
-    response.status = 200;
-    response.statusMessage = "OK";
-    response.header = "Content-type: application/json";
-    response.write(getUsers());
-    response.end();
-  } else if (url.search === "") {
-    response.status = 200;
-    response.statusMessage = "  OK";
-    response.header = "Content-type: text/plain";
-    response.write("Hello, world!");
-    response.end();
-  } else {
-    response.statusCode = 500;
-    response.statusMessage = "Internal Server Error";
-    response.header = "Content-type: text/plain";
-    response.write("  ");
-    response.end();
-  }
-});
+const app = express();
 
-server.listen(3003, () => {
-  console.log("Сервер запущен по адресу http://127.0.0.1:3003");
+const {
+    PORT,
+    API_URL,
+    DB_URL
+} = process.env;
+
+connect(DB_URL, err => {
+    if (err) throw err;
+    console.log('Connected to database success');
+})
+
+app.use(cors);
+app.use(logger);
+app.use(json());
+app.use(usersRouter);
+app.use(booksRouter);
+app.all('*', (req, res) => {
+    res.status(404).send('Page not found');
+})
+
+app.listen(PORT, () => {
+    console.log(`Server start on ${API_URL}:${PORT}`)
 });
